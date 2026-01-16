@@ -1,13 +1,22 @@
 from flask import Flask, request, jsonify
 import os
 import random
+import threading
+
+# 🔹 Import weather background function
+from weather_module import auto_weather_update
 
 app = Flask(__name__)
 
+# -------------------------------
+# Upload Folder Setup
+# -------------------------------
 UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# -------------------------------
 # 🧠 Dummy AI + Knowledge Base
+# -------------------------------
 DISEASE_DB = {
     "Bacterial Blight": {
         "confidence": 94,
@@ -43,6 +52,20 @@ def dummy_ai_prediction():
     disease = random.choice(list(DISEASE_DB.keys()))
     return disease, DISEASE_DB[disease]
 
+# -------------------------------
+# 🌦️ Start Weather Module (Background Thread)
+# -------------------------------
+weather_thread = threading.Thread(
+    target=auto_weather_update,
+    args=("Pune",),   # city
+    daemon=True
+)
+weather_thread.start()
+print("Weather module running in background...")
+
+# -------------------------------
+# 🌿 Disease Analysis API
+# -------------------------------
 @app.route("/analyze", methods=["POST"])
 def analyze():
     file = request.files["image"]
@@ -60,5 +83,8 @@ def analyze():
         "treatment": info["treatment"]
     })
 
+# -------------------------------
+# Main
+# -------------------------------
 if __name__ == "__main__":
     app.run(debug=True)
